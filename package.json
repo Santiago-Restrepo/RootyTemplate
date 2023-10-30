@@ -17,6 +17,7 @@
     "react": "^18",
     "react-dom": "^18",
     "sanity": "^3.18.1",
+    "sanity-plugin-iframe-pane": "^2.6.0",
     "server-only": "^0.0.1",
     "styled-components": "5.2",
     "suspend-react": "^0.1.3"
