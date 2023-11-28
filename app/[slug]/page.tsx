@@ -1,31 +1,48 @@
-import { SanityDocument } from "@sanity/client";
-import { draftMode } from "next/headers";
-import Post from "@/components/Post/Post";
-import { postPathsQuery, postQuery } from "@/sanity/lib/queries";
-import { sanityFetch, token } from "@/sanity/lib/sanityFetch";
-import { client } from "@/sanity/lib/client";
-import PreviewProvider from "@/components/PreviewProvider/PreviewProvider";
-import PreviewPost from "@/components/PreviewPost/PreviewPost";
+import { SanityDocument } from '@sanity/client'
+import { draftMode } from 'next/headers'
+import PageComponent from '@/components/Page/Page'
+import { pagesQuery, pageQuery, $Page } from '@/sanity/queries/page.queries'
+import { sanityFetch, token } from '@/sanity/lib/sanityFetch'
+import { client } from '@/sanity/lib/client'
+import PreviewProvider from '@/components/PreviewProvider/PreviewProvider'
+import PreviewPage from '@/components/PreviewPage/PreviewPage'
+import { NotFoundPage } from '@/components/NotFoundPage/NotFoundPage'
 
-// Prepare Next.js to know which routes already exist
 export async function generateStaticParams() {
-  // Important, use the plain Sanity Client here
-  const posts = await client.fetch(postPathsQuery);
-
-  return posts;
+    const pages = await client.fetch<$Page[]>(pagesQuery)
+    return pages?.map((page) => ({
+        slug: page.slug.current,
+    }))
 }
+export default async function Page({
+    params,
+}: {
+    params: {
+        slug: string
+    }
+}) {
+    const page = await sanityFetch<$Page | null>({
+        query: pageQuery,
+        params: {
+            slug: params.slug,
+        },
+    })
+    const pages = await sanityFetch<$Page[]>({
+        query: pagesQuery,
+    })
+    const isDraftMode = draftMode().isEnabled
 
-export default async function Page({ params }: { params: any }) {
-  const post = await sanityFetch<SanityDocument>({ query: postQuery, params });
-  const isDraftMode = draftMode().isEnabled;
+    if (isDraftMode && token) {
+        return (
+            <PreviewProvider token={token}>
+                {page ? (
+                    <PreviewPage page={page} pages={pages} />
+                ) : (
+                    <NotFoundPage />
+                )}
+            </PreviewProvider>
+        )
+    }
 
-  if (isDraftMode && token) {
-    return (
-      <PreviewProvider token={token}>
-        <PreviewPost post={post} />
-      </PreviewProvider>
-    );
-  }
-
-  return <Post post={post} />;
+    return page ? <PageComponent page={page} pages={pages} /> : <NotFoundPage />
 }
